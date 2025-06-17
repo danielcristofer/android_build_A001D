@@ -8,19 +8,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 🔥 Clonar seu repositório atual
-    - uses: actions/checkout@v3
+    # 🔥 Checkout do código
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
     # 🏗️ Instalar dependências
     - name: Install dependencies
       run: |
-    sudo apt-get update || sudo apt-get update --allow-releaseinfo-change
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
-      git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev \
-      libncurses5-dev libsdl1.2-dev libssl-dev libxml2-utils lzop pngcrush schedtool \
-      squashfs-tools xsltproc zip zlib1g-dev
-
+        sudo apt-get update || sudo apt-get update --allow-releaseinfo-change
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+          bc bison build-essential ccache curl flex g++-multilib gcc-multilib \
+          git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev \
+          libncurses5-dev libsdl1.2-dev libssl-dev libxml2-utils lzop pngcrush schedtool \
+          squashfs-tools xsltproc zip zlib1g-dev
 
     # 📦 Instalar Repo
     - name: Install Repo tool
@@ -28,60 +28,29 @@ jobs:
         mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
-        echo 'export PATH=~/bin:$PATH' >> $GITHUB_ENV
+        echo 'PATH=~/bin:$PATH' >> $GITHUB_ENV
 
-    # 🌐 Baixar Source
-    - name: Sync Source
+    # 🌐 Sincronizar source
+    - name: Sync source
       run: |
         mkdir lineage
         cd lineage
         repo init -u https://github.com/LineageOS/android.git -b lineage-18.1 --depth=1
-        repo sync -j$(nproc) --force-sync
+        repo sync -j$(nproc) --force-sync --no-tags --no-clone-bundle
 
-    # 📂 Clonar Árvores (Device, Kernel e Vendor)
-    - name: Clone Trees
+    # 📂 Clonar device, kernel e vendor
+    - name: Clone device, kernel, and vendor trees
       run: |
         cd lineage
         git clone https://github.com/danielcristofer/device_asus_A001D.git device/asus/A001D
         git clone https://github.com/danielcristofer/kernel_asus_A001D.git kernel/asus/A001D
         git clone https://github.com/danielcristofer/vendor_asus_A001D.git vendor/asus/A001D
 
-    # 🏗️ Configurar Ambiente de Build
-    - name: Setup Build Environment
+    # 🏗️ Configurar ambiente
+    - name: Setup build environment
       run: |
         cd lineage
         source build/envsetup.sh
         lunch lineage_A001D-userdebug
 
-    # 🚀 Iniciar Compilação
-    - name: Start Compilation
-      run: |
-        cd lineage
-        mka bacon -j$(nproc)
-
-    # 📦 Salvar Artifact (backup no Actions)
-    - name: Upload ROM as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: LineageOS-A001D
-        path: lineage/out/target/product/A001D/*.zip
-
-    # 🚀 Upload para GitHub Releases
-    - name: Create GitHub Release
-      uses: ncipollo/release-action@v1
-      with:
-        tag: v1.0-${{ github.run_number }}
-        name: LineageOS 18.1 A001D Build ${{ github.run_number }}
-        body: |
-          📱 LineageOS 18.1 for Asus A001D
-          
-          ✅ Build automático gerado via GitHub Actions.
-          
-          ⚠️ Este build é experimental. Instale por sua conta e risco.
-
-          🌟 Fonte:
-          - https://github.com/danielcristofer/device_asus_A001D
-          - https://github.com/danielcristofer/kernel_asus_A001D
-          - https://github.com/danielcristofer/vendor_asus_A001D
-        artifacts: lineage/out/target/product/A001D/*.zip
-        token: ${{ secrets.GITHUB_TOKEN }}
+    # 🚀 Buil
